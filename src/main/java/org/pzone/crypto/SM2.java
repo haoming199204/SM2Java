@@ -633,16 +633,16 @@ public class SM2 {
 	 *
 	 */
 	private static class TransportEntity implements Serializable {
-		final byte[] R; //R点
-		final byte[] S; //验证S
-		final byte[] Z; //用户标识
-		final byte[] K; //公钥
+		final byte[] R; // R点
+		final byte[] S; // 验证S
+		final byte[] Z; // 用户标识
+		final byte[] K; // 公钥
 
-		public TransportEntity(byte[] r, byte[] s,byte[] z,ECPoint pKey) {
+		public TransportEntity(byte[] r, byte[] s, byte[] z, ECPoint pKey) {
 			R = r;
 			S = s;
-			Z=z;
-			K=pKey.getEncoded(false);
+			Z = z;
+			K = pKey.getEncoded(false);
 		}
 	}
 
@@ -658,14 +658,14 @@ public class SM2 {
 		ECPoint V;
 		byte[] Z;
 		byte[] key;
-		
+
 		String ID;
 		SM2KeyPair keyPair;
 
-		public KeyExchange(String ID,SM2KeyPair keyPair) {
-			this.ID=ID;
+		public KeyExchange(String ID, SM2KeyPair keyPair) {
+			this.ID = ID;
 			this.keyPair = keyPair;
-			this.Z=ZA(ID, keyPair.getPublicKey());
+			this.Z = ZA(ID, keyPair.getPublicKey());
 		}
 
 		/**
@@ -678,13 +678,14 @@ public class SM2 {
 			// rA=new BigInteger("83A2C9C8 B96E5AF7 0BD480B4 72409A9A 327257F1
 			// EBB73F5B 073354B2 48668563".replace(" ", ""),16);
 			RA = G.multiply(rA).normalize();
-			return new TransportEntity(RA.getEncoded(false), null,Z,keyPair.getPublicKey());
+			return new TransportEntity(RA.getEncoded(false), null, Z, keyPair.getPublicKey());
 		}
 
 		/**
 		 * 密钥协商响应方
 		 * 
-		 * @param entity 传输实体
+		 * @param entity
+		 *            传输实体
 		 * @return
 		 */
 		public TransportEntity keyExchange_2(TransportEntity entity) {
@@ -692,26 +693,26 @@ public class SM2 {
 			// BigInteger rB=new BigInteger("33FE2194 0342161C 55619C4A 0C060293
 			// D543C80A F19748CE 176D8347 7DE71C80".replace(" ", ""),16);
 			ECPoint RB = G.multiply(rB).normalize();
-			
-			this.rA=rB;
-			this.RA=RB;
+
+			this.rA = rB;
+			this.RA = RB;
 
 			BigInteger x2 = RB.getXCoord().toBigInteger();
 			x2 = _2w.add(x2.and(_2w.subtract(BigInteger.ONE)));
 
 			BigInteger tB = keyPair.getPrivateKey().add(x2.multiply(rB)).mod(n);
 			ECPoint RA = curve.decodePoint(entity.R).normalize();
-			
+
 			BigInteger x1 = RA.getXCoord().toBigInteger();
 			x1 = _2w.add(x1.and(_2w.subtract(BigInteger.ONE)));
 
-			ECPoint aPublicKey=curve.decodePoint(entity.K).normalize();
+			ECPoint aPublicKey = curve.decodePoint(entity.K).normalize();
 			ECPoint temp = aPublicKey.add(RA.multiply(x1).normalize()).normalize();
 			ECPoint V = temp.multiply(ecc_bc_spec.getH().multiply(tB)).normalize();
 			if (V.isInfinity())
 				throw new IllegalStateException();
-			this.V=V;
-			
+			this.V = V;
+
 			byte[] xV = V.getXCoord().toBigInteger().toByteArray();
 			byte[] yV = V.getYCoord().toBigInteger().toByteArray();
 			byte[] KB = KDF(join(xV, yV, entity.Z, this.Z), 16);
@@ -722,13 +723,14 @@ public class SM2 {
 					sm3hash(xV, entity.Z, this.Z, RA.getXCoord().toBigInteger().toByteArray(),
 							RA.getYCoord().toBigInteger().toByteArray(), RB.getXCoord().toBigInteger().toByteArray(),
 							RB.getYCoord().toBigInteger().toByteArray()));
-			return new TransportEntity(RB.getEncoded(false), sB,this.Z,keyPair.getPublicKey());
+			return new TransportEntity(RB.getEncoded(false), sB, this.Z, keyPair.getPublicKey());
 		}
 
 		/**
 		 * 密钥协商发起方第二步
 		 * 
-		 * @param entity 传输实体
+		 * @param entity
+		 *            传输实体
 		 */
 		public TransportEntity keyExchange_3(TransportEntity entity) {
 			BigInteger x1 = RA.getXCoord().toBigInteger();
@@ -736,54 +738,55 @@ public class SM2 {
 
 			BigInteger tA = keyPair.getPrivateKey().add(x1.multiply(rA)).mod(n);
 			ECPoint RB = curve.decodePoint(entity.R).normalize();
-			
+
 			BigInteger x2 = RB.getXCoord().toBigInteger();
 			x2 = _2w.add(x2.and(_2w.subtract(BigInteger.ONE)));
 
-			ECPoint bPublicKey=curve.decodePoint(entity.K).normalize();
+			ECPoint bPublicKey = curve.decodePoint(entity.K).normalize();
 			ECPoint temp = bPublicKey.add(RB.multiply(x2).normalize()).normalize();
 			ECPoint U = temp.multiply(ecc_bc_spec.getH().multiply(tA)).normalize();
 			if (U.isInfinity())
 				throw new IllegalStateException();
-			this.V=U;
-			
+			this.V = U;
+
 			byte[] xU = U.getXCoord().toBigInteger().toByteArray();
 			byte[] yU = U.getYCoord().toBigInteger().toByteArray();
-			byte[] KA = KDF(join(xU, yU,
-					this.Z, entity.Z), 16);
+			byte[] KA = KDF(join(xU, yU, this.Z, entity.Z), 16);
 			key = KA;
 			System.out.print("协商得A密钥:");
 			printHexString(KA);
-			byte[] s1= sm3hash(new byte[] { 0x02 }, yU,
+			byte[] s1 = sm3hash(new byte[] { 0x02 }, yU,
 					sm3hash(xU, this.Z, entity.Z, RA.getXCoord().toBigInteger().toByteArray(),
 							RA.getYCoord().toBigInteger().toByteArray(), RB.getXCoord().toBigInteger().toByteArray(),
 							RB.getYCoord().toBigInteger().toByteArray()));
-			if(Arrays.equals(entity.S, s1))
+			if (Arrays.equals(entity.S, s1))
 				System.out.println("B->A 密钥确认成功");
 			else
 				System.out.println("B->A 密钥确认失败");
-			byte[] sA= sm3hash(new byte[] { 0x03 }, yU,
+			byte[] sA = sm3hash(new byte[] { 0x03 }, yU,
 					sm3hash(xU, this.Z, entity.Z, RA.getXCoord().toBigInteger().toByteArray(),
 							RA.getYCoord().toBigInteger().toByteArray(), RB.getXCoord().toBigInteger().toByteArray(),
 							RB.getYCoord().toBigInteger().toByteArray()));
-			
-			return new TransportEntity(RA.getEncoded(false), sA,this.Z,keyPair.getPublicKey());
+
+			return new TransportEntity(RA.getEncoded(false), sA, this.Z, keyPair.getPublicKey());
 		}
-		
+
 		/**
 		 * 密钥确认最后一步
 		 * 
-		 * @param entity 传输实体
+		 * @param entity
+		 *            传输实体
 		 */
 		public void keyExchange_4(TransportEntity entity) {
 			byte[] xV = V.getXCoord().toBigInteger().toByteArray();
 			byte[] yV = V.getYCoord().toBigInteger().toByteArray();
 			ECPoint RA = curve.decodePoint(entity.R).normalize();
-			byte[] s2= sm3hash(new byte[] { 0x03 }, yV,
+			byte[] s2 = sm3hash(new byte[] { 0x03 }, yV,
 					sm3hash(xV, entity.Z, this.Z, RA.getXCoord().toBigInteger().toByteArray(),
-							RA.getYCoord().toBigInteger().toByteArray(), this.RA.getXCoord().toBigInteger().toByteArray(),
+							RA.getYCoord().toBigInteger().toByteArray(),
+							this.RA.getXCoord().toBigInteger().toByteArray(),
 							this.RA.getYCoord().toBigInteger().toByteArray()));
-			if(Arrays.equals(entity.S, s2))
+			if (Arrays.equals(entity.S, s2))
 				System.out.println("A->B 密钥确认成功");
 			else
 				System.out.println("A->B 密钥确认失败");
@@ -804,16 +807,16 @@ public class SM2 {
 		// "128B2FA8 BD433C6C 068C8D80 3DFF7979 2A519A55 171B1B65 0C23661D
 		// 15897263".replace(" ", ""), 16);
 
-		// SM2KeyPair keyPair = sm02.generateKeyPair();
-		// ECPoint publicKey=keyPair.getPublicKey();
-		// BigInteger privateKey=keyPair.getPrivateKey();
-		// sm02.exportPublicKey(publicKey, "E:/publickey.pem");
-		// sm02.exportPrivateKey(privateKey, "E:/privatekey.pem");
+//		SM2KeyPair keyPair = sm02.generateKeyPair();
+//		ECPoint publicKey = keyPair.getPublicKey();
+//		BigInteger privateKey = keyPair.getPrivateKey();
+//		sm02.exportPublicKey(publicKey, "E:/publickey.pem");
+//		sm02.exportPrivateKey(privateKey, "E:/privatekey.pem");
 
 		System.out.println("-----------------公钥加密与解密-----------------");
-		ECPoint publicKey = sm02.importPublicKey("E:/publickey.pem");
-		BigInteger privateKey = sm02.importPrivateKey("E:/privatekey.pem");
-		byte[] data = sm02.encrypt("测试加密aaaaaaaaaaa123aabb", publicKey);
+		ECPoint publicKey = sm02.importPublicKey("E:/b39ec68ee01e45b594ac767237edcf50_publickey.pem");
+		BigInteger privateKey = sm02.importPrivateKey("E:/b39ec68ee01e45b594ac767237edcf50_privatekey.pem");
+		byte[] data = sm02.encrypt("张三", publicKey);
 		System.out.print("密文:");
 		SM2.printHexString(data);
 		System.out.println("解密后明文:" + sm02.decrypt(data, privateKey));
@@ -830,11 +833,11 @@ public class SM2 {
 		System.out.println("-----------------密钥协商-----------------");
 		String aID = "AAAAAAAAAAAAA";
 		SM2KeyPair aKeyPair = sm02.generateKeyPair();
-		KeyExchange aKeyExchange = new KeyExchange(aID,aKeyPair);
+		KeyExchange aKeyExchange = new KeyExchange(aID, aKeyPair);
 
 		String bID = "BBBBBBBBBBBBB";
 		SM2KeyPair bKeyPair = sm02.generateKeyPair();
-		KeyExchange bKeyExchange = new KeyExchange(bID,bKeyPair);
+		KeyExchange bKeyExchange = new KeyExchange(bID, bKeyPair);
 		TransportEntity entity1 = aKeyExchange.keyExchange_1();
 		TransportEntity entity2 = bKeyExchange.keyExchange_2(entity1);
 		TransportEntity entity3 = aKeyExchange.keyExchange_3(entity2);
