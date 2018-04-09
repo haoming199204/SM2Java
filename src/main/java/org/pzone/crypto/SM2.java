@@ -1,21 +1,13 @@
 package org.pzone.crypto;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
-import java.security.SecureRandom;
-import java.util.Arrays;
-
 import org.bouncycastle.crypto.params.ECDomainParameters;
 import org.bouncycastle.math.ec.ECCurve;
 import org.bouncycastle.math.ec.ECPoint;
+
+import java.io.*;
+import java.math.BigInteger;
+import java.security.SecureRandom;
+import java.util.Arrays;
 
 /**
  * SM2公钥加密算法实现 包括 -签名,验签 -密钥交换 -公钥加密,私钥解密
@@ -816,7 +808,7 @@ public class SM2 {
 		System.out.println("-----------------公钥加密与解密-----------------");
 		ECPoint publicKey = sm02.importPublicKey("E:/b39ec68ee01e45b594ac767237edcf50_publickey.pem");
 		BigInteger privateKey = sm02.importPrivateKey("E:/b39ec68ee01e45b594ac767237edcf50_privatekey.pem");
-		byte[] data = sm02.encrypt("张三", publicKey);
+		byte[] data = sm02.encrypt("测试加密aaaaaaaaaaa123aabb", publicKey);
 		System.out.print("密文:");
 		SM2.printHexString(data);
 		System.out.println("解密后明文:" + sm02.decrypt(data, privateKey));
